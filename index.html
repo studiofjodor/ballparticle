@@ -3,70 +3,117 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Stereo Nebula | Audio Gravity</title>
+  <title>⬡ Gravity Sim (Clone)</title>
   <style>
-    html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#000; color:#fff; font-family: system-ui, sans-serif; }
+    html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#05060a; color:#e9eef7; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; }
     #root { position:fixed; inset:0; }
     canvas { display:block; }
 
-    #overlay {
-      position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); z-index: 50; transition: opacity 0.8s ease;
-    }
-    #overlay.hidden { opacity: 0; pointer-events: none; }
-    
-    .title { font-size: 24px; font-weight: 200; letter-spacing: 0.2em; margin-bottom: 10px; text-transform: uppercase; }
-    .subtitle { font-size: 11px; letter-spacing: 0.1em; color: #888; margin-bottom: 40px; }
-    
-    button {
-      padding: 14px 40px; background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #fff;
-      font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; border-radius: 4px;
-      cursor: pointer; transition: all 0.3s;
-    }
-    button:hover { background: #fff; color: #000; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
-
     .hud {
-      position: fixed; bottom: 20px; left: 20px; font-size: 10px; letter-spacing: 0.15em;
-      color: rgba(255,255,255,0.5); text-transform: uppercase; pointer-events: none;
+      position:fixed; top:12px; left:12px;
+      font-size:12px; line-height:1.35;
+      background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.08);
+      padding:10px 12px; border-radius:12px; backdrop-filter: blur(8px);
+      user-select:none;
     }
-    
-    .stereo-meters {
-      position: fixed; bottom: 20px; right: 20px; display: flex; gap: 20px; pointer-events: none;
+    .title {
+      position:fixed; top:12px; left:50%; transform:translateX(-50%);
+      font-weight:700; letter-spacing:.3px;
+      background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.08);
+      padding:10px 14px; border-radius:999px; backdrop-filter: blur(8px);
+      user-select:none;
     }
-    .meter-col { display: flex; flex-direction: column; gap: 4px; align-items: center; }
-    .meter-label { font-size: 9px; letter-spacing: 2px; color: #777; }
-    .bar { width: 4px; height: 60px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; position: relative; }
-    .fill { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: #fff; transition: height 0.05s; }
-    .fill.left { background: #00f0ff; box-shadow: 0 0 10px #00f0ff; }
-    .fill.right { background: #ff0055; box-shadow: 0 0 10px #ff0055; }
+    .panel {
+      position:fixed; top:70px; left:12px; width:290px;
+      background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.08);
+      padding:10px 12px; border-radius:12px; backdrop-filter: blur(8px);
+      user-select:none;
+    }
+    .row { display:flex; align-items:center; gap:10px; margin:8px 0; }
+    .row label { flex: 1 1 auto; font-size:12px; opacity:.92; }
+    .row output { width:70px; text-align:right; font-variant-numeric: tabular-nums; opacity:.95; }
+    input[type="range"] { width:100%; }
+    select, button {
+      background:rgba(255,255,255,.06); color:#e9eef7;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:10px; padding:8px 10px;
+      font-size:12px;
+    }
+    button { cursor:pointer; }
+    button:active { transform: translateY(1px); }
+    .btnrow { display:flex; gap:10px; margin-top:10px; }
+    .hint {
+      position:fixed; bottom:12px; left:12px;
+      font-size:12px; opacity:.85;
+      background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.08);
+      padding:10px 12px; border-radius:12px; backdrop-filter: blur(8px);
+      user-select:none;
+    }
   </style>
 </head>
 <body>
-
   <div id="root"></div>
 
-  <div id="overlay">
-    <div class="title">Stereo Nebula</div>
-    <div class="subtitle">Binaural Gravity Simulation</div>
-    <button id="startBtn">Enable Audio</button>
+  <div class="hud" id="hud">
+    <div>FPS: <span id="fps">--</span></div>
+    <div>Particles: <span id="pcount">--</span></div>
+    <div>Time: <span id="simt">0.00</span> s</div>
+    <div>KE: <span id="ke">--</span></div>
   </div>
 
-  <div class="hud">
-    Drag to orbit · Scroll to zoom<br><br>
-    Particles: 50,000
-  </div>
+  <div class="title">⬡ Gravity Sim</div>
 
-  <div class="stereo-meters">
-    <div class="meter-col">
-      <div class="bar"><div class="fill left" id="meterL"></div></div>
-      <div class="meter-label">L</div>
+  <div class="panel">
+    <div class="row">
+      <label for="g">Gravitational Constant</label>
+      <output id="gOut">1.00</output>
     </div>
-    <div class="meter-col">
-      <div class="bar"><div class="fill right" id="meterR"></div></div>
-      <div class="meter-label">R</div>
+    <input id="g" type="range" min="0.00" max="5.00" step="0.01" value="1.00" />
+
+    <div class="row">
+      <label for="eps">Softening ε</label>
+      <output id="epsOut">2.00</output>
     </div>
+    <input id="eps" type="range" min="0.10" max="20.00" step="0.10" value="2.00" />
+
+    <div class="row">
+      <label for="dt">Time Step</label>
+      <output id="dtOut">0.016</output>
+    </div>
+    <input id="dt" type="range" min="0.002" max="0.050" step="0.001" value="0.016" />
+
+    <div class="row">
+      <label for="count">Particle Count</label>
+      <output id="countOut">2000</output>
+    </div>
+    <input id="count" type="range" min="200" max="4000" step="100" value="2000" />
+
+    <div class="row">
+      <label for="size">Point Size</label>
+      <output id="sizeOut">2.0</output>
+    </div>
+    <input id="size" type="range" min="1.0" max="6.0" step="0.1" value="2.0" />
+
+    <div class="btnrow">
+      <button id="pauseBtn">⏸ Pause</button>
+      <button id="resetBtn">↺ Reset</button>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <label for="mode">Colour Mode</label>
+      <output></output>
+    </div>
+    <select id="mode" style="width:100%;">
+      <option value="velocity">Velocity</option>
+      <option value="mass">Mass</option>
+      <option value="depth">Depth</option>
+      <option value="age">Age</option>
+    </select>
   </div>
 
+  <div class="hint">Drag to rotate · Scroll to zoom · Right-drag to pan</div>
+
+  <!-- 🟩 START HINZUFÜGEN: Import Map, damit OrbitControls intern "from 'three'" auflösen kann -->
   <script type="importmap">
     {
       "imports": {
@@ -75,250 +122,485 @@
       }
     }
   </script>
+  <!-- 🟩 ENDE HINZUFÜGEN -->
 
   <script type="module">
+    /* 🟨 START AUSTAUSCHEN: Imports auf Import-Map umstellen (Fix: OrbitControls kann 'three' auflösen)
+       VORHER (auskommentiert):
+       import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+       import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js";
+    */
     import * as THREE from "three";
     import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-    import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
-    import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
-    import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+    /* 🟨 ENDE AUSTAUSCHEN */
 
-    // --- CONFIG ---
-    const NUM_PARTICLES = 50000;
-    const BOUNDS = 400;
-    
-    // --- THREE.JS SETUP ---
+    // ---------- Helpers ----------
+    function clamp(x, a, b){ return Math.max(a, Math.min(b, x)); }
+    function hsvToRgb(h, s, v){
+      h = ((h % 1) + 1) % 1;
+      const i = Math.floor(h * 6);
+      const f = h * 6 - i;
+      const p = v * (1 - s);
+      const q = v * (1 - f * s);
+      const t = v * (1 - (1 - f) * s);
+      let r=0,g=0,b=0;
+      switch (i % 6){
+        case 0: r=v; g=t; b=p; break;
+        case 1: r=q; g=v; b=p; break;
+        case 2: r=p; g=v; b=t; break;
+        case 3: r=p; g=q; b=v; break;
+        case 4: r=t; g=p; b=v; break;
+        case 5: r=v; g=p; b=q; break;
+      }
+      return [r,g,b];
+    }
+    function randn(){
+      // Box–Muller
+      let u = 0, v = 0;
+      while(u === 0) u = Math.random();
+      while(v === 0) v = Math.random();
+      return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    }
+    function randomPointInSphere(radius){
+      // approx uniform-ish via normal vector
+      let x = randn(), y = randn(), z = randn();
+      const len = Math.sqrt(x*x + y*y + z*z) || 1;
+      x /= len; y /= len; z /= len;
+      const r = radius * Math.cbrt(Math.random());
+      return [x*r, y*r, z*r];
+    }
+
+    // ---------- Barnes–Hut Octree ----------
+    const MAX_DEPTH = 18;
+
+    class Node {
+      constructor(cx, cy, cz, half, depth){
+        this.cx = cx; this.cy = cy; this.cz = cz;
+        this.half = half;
+        this.depth = depth;
+        this.mass = 0;
+        this.sx = 0; this.sy = 0; this.sz = 0; // sum(m*x)
+        this.child = null; // Array(8) or null
+        this.p = -1; // particle index for leaf (-1 none)
+      }
+      get isLeaf(){ return this.child === null; }
+    }
+
+    function childIndex(node, x, y, z){
+      let idx = 0;
+      if (x >= node.cx) idx |= 1;
+      if (y >= node.cy) idx |= 2;
+      if (z >= node.cz) idx |= 4;
+      return idx;
+    }
+
+    function ensureChildren(node){
+      if (node.child) return;
+      const h = node.half * 0.5;
+      node.child = new Array(8);
+      for (let i=0;i<8;i++){
+        const ox = (i & 1) ? h : -h;
+        const oy = (i & 2) ? h : -h;
+        const oz = (i & 4) ? h : -h;
+        node.child[i] = new Node(node.cx + ox, node.cy + oy, node.cz + oz, h, node.depth + 1);
+      }
+    }
+
+    function buildTree(root, n){
+      // reset root
+      root.mass = 0; root.sx = 0; root.sy = 0; root.sz = 0;
+      root.child = null; root.p = -1;
+      for (let i=0;i<n;i++){
+        insertClean(root, i);
+      }
+    }
+
+    function insertClean(node, i){
+      const px = pxArr[i*3], py = pxArr[i*3+1], pz = pxArr[i*3+2];
+      const m = massArr[i];
+
+      node.mass += m;
+      node.sx += m * px;
+      node.sy += m * py;
+      node.sz += m * pz;
+
+      if (node.isLeaf){
+        if (node.p === -1){
+          node.p = i;
+          return;
+        }
+        if (node.depth >= MAX_DEPTH){
+          return;
+        }
+        const existing = node.p;
+        node.p = -1;
+        ensureChildren(node);
+
+        // move existing into a child
+        const ex = pxArr[existing*3], ey = pxArr[existing*3+1], ez = pxArr[existing*3+2];
+        const ciOld = childIndex(node, ex, ey, ez);
+        insertClean(node.child[ciOld], existing);
+
+        // insert new
+        const ciNew = childIndex(node, px, py, pz);
+        insertClean(node.child[ciNew], i);
+        return;
+      }
+
+      const ci = childIndex(node, px, py, pz);
+      insertClean(node.child[ci], i);
+    }
+
+    function accelFromNode(i, node, theta, eps2, G){
+      const m = node.mass;
+      if (m <= 0) return [0,0,0];
+
+      const x = pxArr[i*3], y = pxArr[i*3+1], z = pxArr[i*3+2];
+
+      // center of mass
+      const comx = node.sx / m, comy = node.sy / m, comz = node.sz / m;
+
+      let dx = comx - x, dy = comy - y, dz = comz - z;
+      const dist2 = dx*dx + dy*dy + dz*dz + eps2;
+
+      // leaf: do direct if it contains a different particle
+      if (node.isLeaf){
+        const j = node.p;
+        if (j === -1 || j === i) return [0,0,0];
+        const xj = pxArr[j*3], yj = pxArr[j*3+1], zj = pxArr[j*3+2];
+        dx = xj - x; dy = yj - y; dz = zj - z;
+        const d2 = dx*dx + dy*dy + dz*dz + eps2;
+        const inv = 1 / Math.sqrt(d2);
+        const inv3 = inv * inv * inv;
+        const s = G * massArr[j] * inv3;
+        return [dx*s, dy*s, dz*s];
+      }
+
+      const sSize = node.half * 2;
+      const d = Math.sqrt(dist2);
+
+      if (sSize / d < theta){
+        const inv = 1 / d;
+        const inv3 = inv * inv * inv;
+        const s = G * m * inv3;
+        return [dx*s, dy*s, dz*s];
+      }
+
+      let ax=0, ay=0, az=0;
+      for (let k=0;k<8;k++){
+        const c = node.child[k];
+        if (!c || c.mass <= 0) continue;
+        const a = accelFromNode(i, c, theta, eps2, G);
+        ax += a[0]; ay += a[1]; az += a[2];
+      }
+      return [ax, ay, az];
+    }
+
+    // ---------- Simulation State ----------
+    const state = {
+      G: 1.00,
+      eps: 2.00,
+      dt: 0.016,
+      count: 2000,
+      size: 2.0,
+      paused: false,
+      mode: "velocity",
+      theta: 0.70,       // Barnes–Hut opening angle (not exposed in UI)
+      boundsHalf: 220,   // initial spawn scale; tree uses fixed world bounds below
+      worldHalf: 900     // octree root half-size
+    };
+
+    let pxArr = new Float32Array(0);  // positions
+    let vxArr = new Float32Array(0);  // velocities
+    let massArr = new Float32Array(0);
+    let ageArr = new Float32Array(0);
+    let colorArr = new Float32Array(0);
+
+    let simTime = 0;
+
+    // ---------- Three.js Setup ----------
+    const rootEl = document.getElementById("root");
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    rootEl.appendChild(renderer.domElement);
+
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x000000, 0.001);
+    scene.fog = new THREE.FogExp2(0x05060a, 0.0009);
 
-    const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 1, 2000);
-    camera.position.set(0, 150, 400);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
-    renderer.setSize(innerWidth, innerHeight);
-    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
-    document.getElementById("root").appendChild(renderer.domElement);
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 6000);
+    camera.position.set(0, 120, 420);
 
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true; controls.dampingFactor = 0.04;
-    controls.autoRotate = true; controls.autoRotateSpeed = 0.5;
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.target.set(0, 0, 0);
 
-    // --- POST PROCESSING (BLOOM) ---
-    const renderScene = new RenderPass(scene, camera);
-    const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 1.8, 0.5, 0.1);
-    const composer = new EffectComposer(renderer);
-    composer.addPass(renderScene);
-    composer.addPass(bloomPass);
-
-    // --- PROCEDURAL PARTICLE TEXTURE ---
-    function createCircleTexture() {
-      const canvas = document.createElement('canvas'); canvas.width = 32; canvas.height = 32;
-      const ctx = canvas.getContext('2d');
-      const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
-      gradient.addColorStop(0, 'rgba(255,255,255,1)');
-      gradient.addColorStop(0.2, 'rgba(255,255,255,0.8)');
-      gradient.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = gradient; ctx.fillRect(0, 0, 32, 32);
-      return new THREE.CanvasTexture(canvas);
-    }
-
-    // --- PARTICLE SYSTEM ---
     const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(NUM_PARTICLES * 3);
-    const velocities = new Float32Array(NUM_PARTICLES * 3);
-    const colors = new Float32Array(NUM_PARTICLES * 3);
-    const bases = new Float32Array(NUM_PARTICLES); // Zur individuellen Variation
-
-    const colorLeft = new THREE.Color(0x00f0ff);  // Cyan
-    const colorRight = new THREE.Color(0xff0055); // Magenta/Pink
-
-    for (let i = 0; i < NUM_PARTICLES; i++) {
-      // Initiale Verteilung: Eine Art Galaxie-Scheibe
-      const radius = Math.random() * BOUNDS;
-      const theta = Math.random() * Math.PI * 2;
-      const yStr = (Math.random() - 0.5) * (BOUNDS * 0.1);
-      
-      positions[i*3]   = Math.cos(theta) * radius;
-      positions[i*3+1] = yStr;
-      positions[i*3+2] = Math.sin(theta) * radius;
-
-      // Start-Farbe (Mix)
-      colors[i*3] = 0.5; colors[i*3+1] = 0.5; colors[i*3+2] = 0.5;
-      bases[i] = Math.random();
-    }
-
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
     const material = new THREE.PointsMaterial({
-      size: 1.5,
-      map: createCircleTexture(),
+      size: state.size,
       vertexColors: true,
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.95,
       depthWrite: false,
       blending: THREE.AdditiveBlending
     });
+    const points = new THREE.Points(geometry, material);
+    scene.add(points);
 
-    const particles = new THREE.Points(geometry, material);
-    scene.add(particles);
+    // subtle background stars
+    const starGeom = new THREE.BufferGeometry();
+    const starCount = 2000;
+    const starPos = new Float32Array(starCount*3);
+    for (let i=0;i<starCount;i++){
+      const r = 2600 * Math.cbrt(Math.random());
+      const a = Math.random()*Math.PI*2;
+      const b = Math.acos(2*Math.random()-1);
+      starPos[i*3]   = r*Math.sin(b)*Math.cos(a);
+      starPos[i*3+1] = r*Math.cos(b);
+      starPos[i*3+2] = r*Math.sin(b)*Math.sin(a);
+    }
+    starGeom.setAttribute("position", new THREE.BufferAttribute(starPos, 3));
+    const stars = new THREE.Points(starGeom, new THREE.PointsMaterial({ size: 1.0, color: 0xffffff, transparent:true, opacity: 0.18, depthWrite:false }));
+    scene.add(stars);
 
-    // --- AUDIO SETUP (STEREO SPLIT) ---
-    let audioCtx, analyserL, analyserR, dataL, dataR;
-    let audioRunning = false;
-    let bandsL = { sub: 0, mid: 0, high: 0 }, bandsR = { sub: 0, mid: 0, high: 0 };
+    // ---------- UI wiring ----------
+    const el = (id) => document.getElementById(id);
 
-    document.getElementById('startBtn').addEventListener('click', async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        audioCtx = new AudioContext();
-        
-        const source = audioCtx.createMediaStreamSource(stream);
-        const splitter = audioCtx.createChannelSplitter(2);
-        
-        analyserL = audioCtx.createAnalyser(); analyserL.fftSize = 512; analyserL.smoothingTimeConstant = 0.85;
-        analyserR = audioCtx.createAnalyser(); analyserR.fftSize = 512; analyserR.smoothingTimeConstant = 0.85;
+    const g = el("g"), eps = el("eps"), dt = el("dt"), count = el("count"), size = el("size"), mode = el("mode");
+    const gOut = el("gOut"), epsOut = el("epsOut"), dtOut = el("dtOut"), countOut = el("countOut"), sizeOut = el("sizeOut");
+    const pauseBtn = el("pauseBtn"), resetBtn = el("resetBtn");
 
-        source.connect(splitter);
-        splitter.connect(analyserL, 0); // Kanal 0 (Links)
-        splitter.connect(analyserR, 1); // Kanal 1 (Rechts)
-
-        dataL = new Uint8Array(analyserL.frequencyBinCount);
-        dataR = new Uint8Array(analyserR.frequencyBinCount);
-        
-        audioRunning = true;
-        document.getElementById('overlay').classList.add('hidden');
-      } catch (err) {
-        alert('Mikrofonzugriff benötigt!\n' + err.message);
-      }
-    });
-
-    function getBands(data) {
-      const avg = (start, end) => {
-        let sum = 0; for (let i = start; i < end; i++) sum += data[i];
-        return (sum / (end - start)) / 255;
-      };
-      return { sub: avg(1, 4), mid: avg(10, 40), high: avg(80, 160) }; // Angepasste Bins für FFT 512
+    function syncUI(){
+      g.value = state.G.toFixed(2); gOut.textContent = state.G.toFixed(2);
+      eps.value = state.eps.toFixed(2); epsOut.textContent = state.eps.toFixed(2);
+      dt.value = state.dt.toFixed(3); dtOut.textContent = state.dt.toFixed(3);
+      count.value = String(state.count); countOut.textContent = String(state.count);
+      size.value = state.size.toFixed(1); sizeOut.textContent = state.size.toFixed(1);
+      mode.value = state.mode;
+      pauseBtn.textContent = state.paused ? "▶ Resume" : "⏸ Pause";
     }
 
-    // --- PHYSICS & ANIMATION LOOP ---
-    const clock = new THREE.Clock();
-    
-    // Positionen der Stereo-Attraktoren
-    const attL = new THREE.Vector3(-150, 0, 0);
-    const attR = new THREE.Vector3(150, 0, 0);
+    g.addEventListener("input", () => { state.G = parseFloat(g.value); gOut.textContent = state.G.toFixed(2); });
+    eps.addEventListener("input", () => { state.eps = parseFloat(eps.value); epsOut.textContent = state.eps.toFixed(2); });
+    dt.addEventListener("input", () => { state.dt = parseFloat(dt.value); dtOut.textContent = state.dt.toFixed(3); });
+    size.addEventListener("input", () => {
+      state.size = parseFloat(size.value);
+      sizeOut.textContent = state.size.toFixed(1);
+      material.size = state.size;
+    });
+    mode.addEventListener("change", () => { state.mode = mode.value; });
 
-    function animate() {
-      requestAnimationFrame(animate);
-      const delta = Math.min(clock.getDelta(), 0.05); // Cap delta to prevent explosions
-      const time = clock.getElapsedTime();
+    count.addEventListener("change", () => {
+      state.count = parseInt(count.value, 10);
+      countOut.textContent = String(state.count);
+      resetSim();
+    });
 
-      if (audioRunning) {
-        analyserL.getByteFrequencyData(dataL);
-        analyserR.getByteFrequencyData(dataR);
-        bandsL = getBands(dataL);
-        bandsR = getBands(dataR);
+    pauseBtn.addEventListener("click", () => {
+      state.paused = !state.paused;
+      pauseBtn.textContent = state.paused ? "▶ Resume" : "⏸ Pause";
+    });
 
-        // UI Updates
-        document.getElementById('meterL').style.height = `${bandsL.sub * 100}%`;
-        document.getElementById('meterR').style.height = `${bandsR.sub * 100}%`;
+    resetBtn.addEventListener("click", () => resetSim());
+
+    // ---------- Simulation init/reset ----------
+    function resetSim(){
+      simTime = 0;
+
+      const n = state.count;
+      pxArr = new Float32Array(n*3);
+      vxArr = new Float32Array(n*3);
+      massArr = new Float32Array(n);
+      ageArr = new Float32Array(n);
+      colorArr = new Float32Array(n*3);
+
+      // galaxy-ish init
+      const R = state.boundsHalf;
+      for (let i=0;i<n;i++){
+        const p = randomPointInSphere(R);
+        const x = p[0], y = p[1]*0.35, z = p[2]; // flatten a bit
+        pxArr[i*3] = x; pxArr[i*3+1] = y; pxArr[i*3+2] = z;
+
+        const m = 0.4 + Math.random()*1.8;
+        massArr[i] = m;
+        ageArr[i] = 0;
+
+        // tangential velocity around Y axis
+        const r = Math.sqrt(x*x + z*z) + 1e-6;
+        const tx = -z / r, tz = x / r;
+        const speed = 0.55 / Math.sqrt(r*0.08 + 1) + (Math.random()-0.5)*0.02;
+        vxArr[i*3] = tx * speed;
+        vxArr[i*3+1] = (Math.random()-0.5) * 0.02;
+        vxArr[i*3+2] = tz * speed;
       }
 
-      const pos = geometry.attributes.position.array;
-      const col = geometry.attributes.color.array;
+      geometry.setAttribute("position", new THREE.BufferAttribute(pxArr, 3));
+      geometry.setAttribute("color", new THREE.BufferAttribute(colorArr, 3));
+      geometry.attributes.position.setUsage(THREE.DynamicDrawUsage);
+      geometry.attributes.color.setUsage(THREE.DynamicDrawUsage);
 
-      // Basis-Gravitation + Audio Boost
-      const baseG = 1500;
-      const massL = baseG + (bandsL.sub * 15000); 
-      const massR = baseG + (bandsR.sub * 15000);
-      
-      // Wirbelkraft (Tangential) gesteuert durch Mitten
-      const swirlL = 0.5 + bandsL.mid * 3.0;
-      const swirlR = 0.5 + bandsR.mid * 3.0;
-
-      // Turbulenz durch Höhen
-      const noiseLevel = (bandsL.high + bandsR.high) * 0.5;
-
-      const up = new THREE.Vector3(0, 1, 0);
-      const pVec = new THREE.Vector3();
-      const dirL = new THREE.Vector3();
-      const dirR = new THREE.Vector3();
-      const crossL = new THREE.Vector3();
-      const crossR = new THREE.Vector3();
-
-      for (let i = 0; i < NUM_PARTICLES; i++) {
-        const i3 = i * 3;
-        pVec.set(pos[i3], pos[i3+1], pos[i3+2]);
-
-        // --- PHYSICS: ATTRACTOR LEFT ---
-        dirL.subVectors(attL, pVec);
-        const distSqL = dirL.lengthSq() + 500; // +500 Softening (verhindert Unendlichkeit)
-        const fL = massL / distSqL;
-        dirL.normalize();
-        
-        // --- PHYSICS: ATTRACTOR RIGHT ---
-        dirR.subVectors(attR, pVec);
-        const distSqR = dirR.lengthSq() + 500;
-        const fR = massR / distSqR;
-        dirR.normalize();
-
-        // --- TANGENTIAL FORCES (SWIRL) ---
-        crossL.crossVectors(dirL, up).normalize().multiplyScalar(swirlL * fL);
-        crossR.crossVectors(dirR, up).normalize().multiplyScalar(swirlR * fR);
-
-        // --- APPLY FORCES TO VELOCITY ---
-        // Anziehung + Wirbel
-        velocities[i3]   += (dirL.x * fL + crossL.x + dirR.x * fR + crossR.x) * delta;
-        velocities[i3+1] += (dirL.y * fL + crossL.y + dirR.y * fR + crossR.y) * delta;
-        velocities[i3+2] += (dirL.z * fL + crossL.z + dirR.z * fR + crossR.z) * delta;
-
-        // Turbulenz (Zittern bei Hi-Hats/Höhen)
-        if (noiseLevel > 0.1) {
-          velocities[i3]   += (Math.random() - 0.5) * noiseLevel * 2;
-          velocities[i3+1] += (Math.random() - 0.5) * noiseLevel * 2;
-          velocities[i3+2] += (Math.random() - 0.5) * noiseLevel * 2;
-        }
-
-        // Dämpfung (Friction im Raum)
-        velocities[i3]   *= 0.96;
-        velocities[i3+1] *= 0.96;
-        velocities[i3+2] *= 0.96;
-
-        // Position updaten
-        pos[i3]   += velocities[i3];
-        pos[i3+1] += velocities[i3+1];
-        pos[i3+2] += velocities[i3+2];
-
-        // --- COLOR BLENDING BASED ON INFLUENCE ---
-        // Finde heraus, ob Partikel eher von Links oder Rechts beeinflusst wird
-        const influenceRatio = fL / (fL + fR + 0.0001); // 1 = voll Links, 0 = voll Rechts
-        
-        // Mische die Farben sanft
-        col[i3]   += ( (colorLeft.r * influenceRatio + colorRight.r * (1 - influenceRatio)) - col[i3] ) * 0.1;
-        col[i3+1] += ( (colorLeft.g * influenceRatio + colorRight.g * (1 - influenceRatio)) - col[i3+1] ) * 0.1;
-        col[i3+2] += ( (colorLeft.b * influenceRatio + colorRight.b * (1 - influenceRatio)) - col[i3+2] ) * 0.1;
-        
-        // Helligkeit basierend auf Geschwindigkeit
-        const speed = Math.sqrt(velocities[i3]**2 + velocities[i3+1]**2 + velocities[i3+2]**2);
-        const glow = Math.min(speed * 0.2, 1.0);
-        col[i3]   += glow * 0.2;
-        col[i3+1] += glow * 0.2;
-        col[i3+2] += glow * 0.2;
-      }
-
-      geometry.attributes.position.needsUpdate = true;
+      updateColors();
       geometry.attributes.color.needsUpdate = true;
+      geometry.attributes.position.needsUpdate = true;
+    }
+
+    // ---------- Coloring ----------
+    function updateColors(){
+      const n = state.count;
+      let vMax = 0;
+      let mMin = Infinity, mMax = -Infinity;
+      let zMin = Infinity, zMax = -Infinity;
+      let aMax = 0;
+
+      if (state.mode === "velocity"){
+        for (let i=0;i<n;i++){
+          const vx = vxArr[i*3], vy = vxArr[i*3+1], vz = vxArr[i*3+2];
+          const v = Math.sqrt(vx*vx + vy*vy + vz*vz);
+          if (v > vMax) vMax = v;
+        }
+        vMax = Math.max(vMax, 1e-6);
+        for (let i=0;i<n;i++){
+          const vx = vxArr[i*3], vy = vxArr[i*3+1], vz = vxArr[i*3+2];
+          const v = Math.sqrt(vx*vx + vy*vy + vz*vz);
+          const t = clamp(v / vMax, 0, 1);
+          const [r,g,b] = hsvToRgb(0.66*(1-t), 1.0, 0.95);
+          colorArr[i*3] = r; colorArr[i*3+1] = g; colorArr[i*3+2] = b;
+        }
+        return;
+      }
+
+      if (state.mode === "mass"){
+        for (let i=0;i<n;i++){ const m = massArr[i]; mMin = Math.min(mMin, m); mMax = Math.max(mMax, m); }
+        const denom = Math.max(1e-6, mMax - mMin);
+        for (let i=0;i<n;i++){
+          const t = clamp((massArr[i] - mMin)/denom, 0, 1);
+          const [r,g,b] = hsvToRgb(0.10 + 0.75*t, 0.9, 0.95);
+          colorArr[i*3] = r; colorArr[i*3+1] = g; colorArr[i*3+2] = b;
+        }
+        return;
+      }
+
+      if (state.mode === "depth"){
+        for (let i=0;i<n;i++){
+          const z = pxArr[i*3+2];
+          zMin = Math.min(zMin, z); zMax = Math.max(zMax, z);
+        }
+        const denom = Math.max(1e-6, zMax - zMin);
+        for (let i=0;i<n;i++){
+          const t = clamp((pxArr[i*3+2] - zMin)/denom, 0, 1);
+          const [r,g,b] = hsvToRgb(0.58 - 0.48*t, 0.85, 0.95);
+          colorArr[i*3] = r; colorArr[i*3+1] = g; colorArr[i*3+2] = b;
+        }
+        return;
+      }
+
+      // age
+      for (let i=0;i<n;i++) aMax = Math.max(aMax, ageArr[i]);
+      aMax = Math.max(aMax, 1e-6);
+      for (let i=0;i<n;i++){
+        const t = clamp(ageArr[i]/aMax, 0, 1);
+        const [r,g,b] = hsvToRgb(0.85 - 0.75*t, 0.9, 0.95);
+        colorArr[i*3] = r; colorArr[i*3+1] = g; colorArr[i*3+2] = b;
+      }
+    }
+
+    // ---------- Main loop ----------
+    const fpsEl = el("fps"), pcEl = el("pcount"), tEl = el("simt"), keEl = el("ke");
+    let lastNow = performance.now();
+    let fpsAcc = 0, fpsFrames = 0;
+
+    const rootTree = new Node(0,0,0, state.worldHalf, 0);
+
+    function step(){
+      const now = performance.now();
+      const dtReal = (now - lastNow) / 1000;
+      lastNow = now;
+
+      fpsAcc += dtReal; fpsFrames++;
+      if (fpsAcc >= 0.35){
+        const fps = fpsFrames / fpsAcc;
+        fpsEl.textContent = fps.toFixed(0);
+        fpsAcc = 0; fpsFrames = 0;
+      }
 
       controls.update();
-      composer.render(); // WICHTIG: Composer statt Renderer nutzen für Bloom!
+
+      if (!state.paused){
+        const n = state.count;
+        const dtSim = state.dt;
+        const eps2 = state.eps * state.eps;
+        const G = state.G;
+
+        // rebuild octree each frame
+        rootTree.cx = 0; rootTree.cy = 0; rootTree.cz = 0;
+        rootTree.half = state.worldHalf;
+        rootTree.depth = 0;
+        buildTree(rootTree, n);
+
+        // integrate
+        let KE = 0;
+        for (let i=0;i<n;i++){
+          const a = accelFromNode(i, rootTree, state.theta, eps2, G);
+
+          const vx = vxArr[i*3]   + a[0] * dtSim;
+          const vy = vxArr[i*3+1] + a[1] * dtSim;
+          const vz = vxArr[i*3+2] + a[2] * dtSim;
+
+          // mild damping to avoid numeric blow-ups at high G/dt
+          const damp = 0.9992;
+          vxArr[i*3]   = vx * damp;
+          vxArr[i*3+1] = vy * damp;
+          vxArr[i*3+2] = vz * damp;
+
+          pxArr[i*3]   += vxArr[i*3]   * dtSim;
+          pxArr[i*3+1] += vxArr[i*3+1] * dtSim;
+          pxArr[i*3+2] += vxArr[i*3+2] * dtSim;
+
+          ageArr[i] += dtSim;
+
+          const v2 = vxArr[i*3]*vxArr[i*3] + vxArr[i*3+1]*vxArr[i*3+1] + vxArr[i*3+2]*vxArr[i*3+2];
+          KE += 0.5 * massArr[i] * v2;
+
+          // soft "containment" so the scene doesn't drift to infinity
+          const x = pxArr[i*3], y = pxArr[i*3+1], z = pxArr[i*3+2];
+          const r = Math.sqrt(x*x+y*y+z*z);
+          const limit = state.worldHalf * 0.92;
+          if (r > limit){
+            const k = 0.0008 * (r - limit);
+            vxArr[i*3]   -= (x / (r||1)) * k;
+            vxArr[i*3+1] -= (y / (r||1)) * k;
+            vxArr[i*3+2] -= (z / (r||1)) * k;
+          }
+        }
+
+        simTime += dtSim;
+
+        updateColors();
+
+        geometry.attributes.position.needsUpdate = true;
+        geometry.attributes.color.needsUpdate = true;
+
+        tEl.textContent = simTime.toFixed(2);
+        keEl.textContent = KE.toFixed(0);
+      }
+
+      pcEl.textContent = String(state.count);
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(step);
     }
 
     window.addEventListener("resize", () => {
-      camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
-      renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
     });
 
-    animate();
+    // boot
+    syncUI();
+    resetSim();
+    requestAnimationFrame(step);
   </script>
 </body>
 </html>
